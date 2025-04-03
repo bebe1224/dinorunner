@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>크롬 다이노 게임</title>
+    <link rel="stylesheet" href="./btn.css">
+    <style>
+        body {
+            overflow: hidden;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 32px;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameCanvas {
+            margin: 0;
+        }
+
+        canvas {
+            background-color: lightgray;
+            display: block;
+            margin: auto;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+
+<body>
+    <h2>크롬 다이노 게임</h2>
+    <canvas id="gameCanvas" width="800" height="300"></canvas>
+    <button id="startGame" class="ui-btn"><span>게임 시작</span></button>
+    <button id="restartGame" class="ui-btn" style="display: none;"><span>재시작</span></button>
+    <b>SPACEBAR = JUMP</b>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // 이미지 로드
+        const trexImg = new Image();
+        trexImg.src = "./img/8bit_dino2.gif"; // 티라노 이미지 링크
+
+        const obstacleImg = new Image();
+        obstacleImg.src = "./img/pillar.png"; // 장애물(선인장) 이미지 링크
+
+        let trex, gravity, jumpPower, obstacles, gameSpeed, score, gameRunning, frameCount;
+
+        function initGame() {
+            trex = { x: 50, y: 130, width: 60, height: 60, dy: 0, onGround: true };
+            gravity = 0.6;
+            jumpPower = -12;
+            obstacles = [];
+            gameSpeed = 5;
+            score = 0;
+            frameCount = 0;
+            gameRunning = false;
+
+            document.getElementById("startGame").style.display = "inline-block";
+            document.getElementById("restartGame").style.display = "none";
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+            gameRunning = true;
+            score = 0;
+            obstacles = [];
+
+            document.getElementById("startGame").style.display = "none";
+            document.getElementById("restartGame").style.display = "none";
+
+            requestAnimationFrame(update);
+        }
+
+        function restartGame() {
+            initGame();
+            startGame();
+        }
+
+        function jump() {
+            if (trex.onGround) {
+                trex.dy = jumpPower;
+                trex.onGround = false;
+            }
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            frameCount++;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 중력 적용
+            trex.dy += gravity;
+            trex.y += trex.dy;
+
+            // 땅에 닿으면 점프 가능
+            if (trex.y > 150) {
+                trex.y = 150;
+                trex.dy = 0;
+                trex.onGround = true;
+            }
+
+            // 장애물 추가 (랜덤하게 생성)
+            if (Math.random() < 0.009) {
+                obstacles.push({ x: canvas.width, y: 170, width: 30, height: 50 });
+            }
+
+            // 장애물 이동 및 충돌 검사
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= gameSpeed;
+                if (
+                    trex.x < obstacles[i].x + obstacles[i].width &&
+                    trex.x + trex.width > obstacles[i].x &&
+                    trex.y < obstacles[i].y + obstacles[i].height &&
+                    trex.y + trex.height > obstacles[i].y
+                ) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            // 점수 증가 (10프레임마다 1씩 증가)
+            if (frameCount % 10 === 0) {
+                score++;
+            }
+
+            // 장애물 제거 (화면 밖으로 나간 장애물 삭제)
+            obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+            // **이미지로 캐릭터 및 장애물 그리기**
+            ctx.drawImage(trexImg, trex.x, trex.y, trex.width, trex.height);
+            obstacles.forEach(obs => ctx.drawImage(obstacleImg, obs.x, obs.y, obs.width, obs.height));
+
+            // 점수 표시
+            ctx.fillStyle = "black";
+            ctx.fillText("점수: " + score, 700, 20);
+
+            requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            setTimeout(() => {
+                alert("게임 오버! 점수: " + score);
+                document.getElementById("restartGame").style.display = "inline-block";
+            }, 100);
+        }
+
+        document.getElementById("startGame").addEventListener("click", startGame);
+        document.getElementById("restartGame").addEventListener("click", restartGame);
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") jump();
+        });
+
+        initGame();
+    </script>
+</body>
+
+</html>
